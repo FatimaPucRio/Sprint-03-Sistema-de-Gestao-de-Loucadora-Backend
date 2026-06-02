@@ -1,3 +1,5 @@
+
+
 # from datetime import date, datetime
 # from functools import wraps
 # import logging
@@ -343,7 +345,9 @@
 # app.config['SWAGGER'] = {
 #     'title': 'API Sistema de Gestão de Locadora',
 #     'uiversion': 3,
-#     'openapi': '3.0.2'
+#     'openapi': '3.0.2',
+#     'host': '127.0.0.1:5000',
+#     'schemes': ['http']
 # }
 
 # swagger = Swagger(app)
@@ -366,6 +370,7 @@ import webbrowser
 from threading import Timer
 from typing import Tuple
 import re
+import os
 
 from flask import Flask, request, jsonify, Blueprint, redirect
 from flasgger import Swagger
@@ -475,7 +480,6 @@ def busca_filme_tmdb(titulo: str):
         "interestelar": {"titulo": "Interstellar", "genero": "Sci-Fi", "ano": 2014}
     }
     busca = titulo.lower().strip()
-    # Modificado para retornar estritamente None se não bater com a lista
     return  filmes_mock.get(busca, None)
 
 # === CLIENTES ===
@@ -528,21 +532,17 @@ def cadastra_cliente(conn: sqlite3.Connection):
     email = dados.get('email', '')
     telefone = dados.get('telefone', '')
 
-    # Validações de Campos Obrigatórios
     if not nome or not cpf or not data_nascimento:
         return jsonify({"erro": "Os campos 'nome', 'cpf' e 'data_nascimento' são obrigatórios."}), 400
 
-    # Validação de Regra de Negócio: Idade
     try:
         valida_idade(data_nascimento)
     except ValueError as e:
         return jsonify({"erro": str(e)}), 400
 
-    # Validação de Formato de CPF
     if not validar_cpf_formato(cpf):
         return jsonify({"erro": "Formato de CPF inválido. Certifique-se de enviar 11 dígitos."}), 400
 
-    # Inserção direta no Banco de Dados
     cursor = conn.execute("""
         INSERT INTO clientes (nome, cpf, email, telefone, data_nascimento)
         VALUES (?, ?, ?, ?, ?)
@@ -690,7 +690,6 @@ def busca_filme_externa():
 
     resultado = busca_filme_tmdb(titulo)
     
-    # Validação do retorno do mock: se for None, envia erro 404 explicitamente
     if not resultado:
         return jsonify({"erro": f"Filme '{titulo}' não foi localizado no catálogo da API externa."}), 404
 
@@ -716,6 +715,9 @@ if __name__ == '__main__':
     except Exception as e:
         logger.error(f"Erro ao inicializar DB: {e}")
 
-    logger.info("Servidor iniciado localmente na porta 5000")
-    Timer(1.5, abrir_navegador).start()
+    # Verifica se NÃO estamos no processo de reloader do Flask para abrir apenas uma vez
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        logger.info("Servidor iniciado localmente na porta 5000")
+        Timer(1.5, abrir_navegador).start()
+        
     app.run(debug=True, host='0.0.0.0', port=5000)
