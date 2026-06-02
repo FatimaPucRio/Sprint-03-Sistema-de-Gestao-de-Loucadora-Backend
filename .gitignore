@@ -1,0 +1,14 @@
+# Pastas de ambiente e cache
+__pycache__/
+venv/
+venv_final/
+
+# Banco de dados local (para não sobrescrever o banco de outros)
+locadora.db
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+Dockerfile
+docker-compose.yml
